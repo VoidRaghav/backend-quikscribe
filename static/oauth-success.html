@@ -1,0 +1,105 @@
+<!-- static/oauth-success.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuikScribe - OAuth Success</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #4285f4;
+            margin-bottom: 20px;
+        }
+        .success-icon {
+            font-size: 64px;
+            color: #34A853;
+            margin-bottom: 20px;
+        }
+        .token-box {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            word-break: break-all;
+            text-align: left;
+            font-family: monospace;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✓</div>
+        <h1>Google Sign-In Successful!</h1>
+        <p>You have successfully signed in with your Google account.</p>
+        <p>Your access token is:</p>
+        <div class="token-box" id="token-display">Loading token...</div>
+        <button id="copy-token">Copy Token</button>
+        <button id="continue-btn">Continue to App</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get token from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            // Display token
+            const tokenDisplay = document.getElementById('token-display');
+            if (token) {
+                tokenDisplay.textContent = token;
+                // Store token in localStorage
+                localStorage.setItem('auth_token', token);
+            } else {
+                tokenDisplay.textContent = 'No token received';
+            }
+            
+            // Copy token button
+            document.getElementById('copy-token').addEventListener('click', function() {
+                if (token) {
+                    navigator.clipboard.writeText(token)
+                        .then(() => alert('Token copied to clipboard!'))
+                        .catch(err => console.error('Could not copy text: ', err));
+                }
+            });
+            
+            // Continue button
+            document.getElementById('continue-btn').addEventListener('click', function() {
+                window.location.href = 'http://localhost:8000/';
+            });
+        });
+    </script>
+</body>
+</html> 
