@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # QuikScribe Backend API
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -329,3 +330,6 @@ For support and questions:
 
 **Built with ❤️ by the QuikScribe Team**
 
+=======
+# backend-quikscribe
+>>>>>>> cf1130291e16b9275c7c9272523e6ca368639866
