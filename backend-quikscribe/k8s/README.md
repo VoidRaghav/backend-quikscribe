@@ -85,3 +85,20 @@ Use the convenience script:
 ```
 
 The script applies namespace, secrets, backend, optional legacy bot, worker (only if KEDA CRD is present), and coordinator. It will prompt for optional backend ingress.
+
+## Optional Components and Cleanup
+
+### Skipping Google Bot components
+- The apply script references manifests in `../google_bot/k8s/`:
+  - `aws-secret.yaml.template`
+  - `worker.yaml` (only if KEDA CRD is present)
+  - `coordinator.yaml`
+  - `deployment.yaml` (legacy bot)
+- If you are not using the Node-based bot, you can:
+  - Remove or comment out these apply lines in `k8s/apply.sh`.
+  - Omit creating the `../google_bot/k8s/*` manifests entirely.
+
+### General cleanup suggestions
+- Do not commit large binaries or bundled CLIs (e.g., `awscliv2.zip`, `eksctl`, `aws/`). Install tools on your machine/CI instead.
+- Avoid committing `node_modules/` (especially under `google_bot/`). Regenerate with your package manager during builds.
+- Secrets should be templated only; never commit real values. Use secret managers or CI/CD secret stores.

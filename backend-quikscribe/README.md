@@ -43,3 +43,47 @@ kubectl apply -f backend-ingress.yaml.template
 - Replace `your-registry/...:latest` images with actual registry/image:tag.
 - Use RDS/ElastiCache endpoints in secrets/configs for production.
 - Consider IRSA for S3 (instead of static keys) in production.
+
+## Repository Cleanup and Optional Components
+
+This repository contains optional components and large artifacts that you may not need in your workflow. Use this checklist to minimize disk usage while keeping your deployment path intact.
+
+### Optional components
+- Google Meeting Bot (`google_bot/`)
+  - Used by Docker Compose services (`google_bot`, `meeting_coordinator`) and Kubernetes manifests referenced by `k8s/apply.sh`.
+  - If you do not run the Node-based meeting bot, you can remove `google_bot/` and related wiring:
+    - Remove `docker-compose.concurrency.yml` or the `google_bot` service from `docker-compose.yml`.
+    - Remove Google Bot references from `k8s/apply.sh` and skip applying `../google_bot/k8s/*.yaml`.
+  - If you keep it, do NOT commit `google_bot/node_modules/` to version control. Regenerate via your package manager.
+
+- Nginx load balancer (`nginx.conf`)
+  - Only used by `docker-compose.concurrency.yml` to load-balance dynamic bot ports.
+  - If you do not use that stack, you can remove `nginx.conf`.
+
+### Large root artifacts (safe to remove from repo)
+- `awscliv2.zip`, `eksctl`, `eksctl_Linux_amd64.tar.gz`, and the bundled AWS CLI distribution under `aws/`
+  - These are not used by the backend at runtime. Prefer installing AWS CLI and eksctl via your OS/CI environment instead of committing them.
+
+### Static HTML pages
+- `static/login.html`, `static/oauth-success.html`, `static/oauth-error.html`
+  - Current OAuth flow redirects to `settings.frontend_url` (see `app/modules/auth/routes.py`). If your frontend handles these routes, the static HTML files are unnecessary and can be removed.
+
+### Local/dev artifacts
+- `.venv_quikscribe/`
+  - Local Python virtual environment. Do not commit; add to `.gitignore`.
+- `.env.bak.*` and `*.pem`
+  - Environment backups and private keys should not be committed. Store securely and ignore in VCS.
+
+### Suggested .gitignore additions
+Add these patterns to `backend-quikscribe/.gitignore` to prevent large or sensitive files from being committed:
+
+```
+node_modules/
+.venv_quikscribe/
+*.pem
+*.bak
+```
+
+### Compose and K8s quick notes
+- `init.sql` is mounted by both Compose files; keep it if you use Compose.
+- If you do not deploy to Kubernetes, the entire `k8s/` directory is optional and can be archived outside the repo.

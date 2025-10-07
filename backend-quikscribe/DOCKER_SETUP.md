@@ -275,6 +275,36 @@ curl http://localhost:8000/health
 - [PostgreSQL Docker](https://hub.docker.com/_/postgres)
 - [Redis Docker](https://hub.docker.com/_/redis)
 
+## Repository Cleanup and Optional Components
+
+Use this checklist to keep your local clone and CI artifacts lean:
+
+### Optional services
+- Google Meeting Bot (`google_bot/`)
+  - Only required if you run the Node-based meeting bot stack (Compose services `google_bot`/`meeting_coordinator`, K8s manifests under `google_bot/k8s`).
+  - If not used, remove `google_bot/` and its references from `docker-compose*.yml` and `k8s/apply.sh`.
+  - If used, ensure `google_bot/node_modules/` is not committed (regenerate with your package manager).
+
+- Nginx (`nginx.conf`)
+  - Used by `docker-compose.concurrency.yml` for load-balancing dynamic bot ports.
+  - If you do not use this compose profile, you can remove `nginx.conf`.
+
+### Large root artifacts (safe to remove from repo)
+- `awscliv2.zip`, `eksctl`, `eksctl_Linux_amd64.tar.gz`, and the bundled AWS CLI under `aws/`
+  - Not required at runtime by containers. Prefer installing tools on developer machines/CI.
+
+### Static HTML pages
+- `static/login.html`, `static/oauth-success.html`, `static/oauth-error.html`
+  - If your frontend handles OAuth redirects (see `app/modules/auth/routes.py`), these can be removed.
+
+### Suggested `.gitignore` additions (in `backend-quikscribe/.gitignore`)
+```
+node_modules/
+.venv_quikscribe/
+*.pem
+*.bak
+```
+
 ---
 
 🎉 **You're all set!** Your QuikScribe backend is now fully dockerized and ready for development and testing.

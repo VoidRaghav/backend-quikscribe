@@ -360,3 +360,39 @@ jobs:
 10. **⏳ Set up CI/CD pipeline**
 
 This structure will make your codebase **scalable**, **maintainable**, and **professional**! 🚀 
+
+---
+
+## 📦 Optional Components & Repository Hygiene
+
+Follow these recommendations to keep the repository lean and secure:
+
+### Optional Components
+- **Google Meeting Bot (`google_bot/`)**
+  - Only required if you run the Node-based meeting bot stack via Docker Compose or Kubernetes.
+  - If unused, remove the `google_bot/` directory and references from `docker-compose*.yml` and `k8s/apply.sh`.
+  - If used, avoid committing `google_bot/node_modules/` (regenerate with your package manager).
+
+- **Nginx (`nginx.conf`)**
+  - Used by `docker-compose.concurrency.yml` to load-balance dynamic bot ports.
+  - Safe to remove if you don’t use the concurrency compose profile.
+
+### Large Artifacts (Remove from Repo)
+- Root-level archives and bundled tools: `awscliv2.zip`, `eksctl`, `eksctl_Linux_amd64.tar.gz`, and `aws/` (bundled AWS CLI)
+  - Not required by application runtime. Install tooling on developer machines/CI instead of committing binaries.
+
+### Static HTML Pages
+- `static/login.html`, `static/oauth-success.html`, `static/oauth-error.html`
+  - If the frontend handles OAuth redirects (`app/modules/auth/routes.py` uses `settings.frontend_url`), these are optional and can be removed.
+
+### .gitignore Recommendations (in `backend-quikscribe/.gitignore`)
+```
+node_modules/
+.venv_quikscribe/
+*.pem
+*.bak
+```
+
+### CI Notes
+- Ensure CI does dependency installs (Python/Node) rather than relying on committed `node_modules/` or virtual environments.
+- Avoid storing secrets or key files in the repo; use a secrets manager.
