@@ -1,0 +1,20 @@
+{
+  "name": "fathom",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.21"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.800.0",
+    "@types/selenium-webdriver": "^4.1.28",
+    "ioredis": "^5.4.1",
+    "express": "^5.1.0",
+    "selenium-webdriver": "^4.31.0"
+  }
+}

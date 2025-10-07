@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: quikscribe_postgres
+    environment:
+      POSTGRES_DB: quikscribe
+      POSTGRES_USER: quikscribe_user
+      POSTGRES_PASSWORD: quikscribe_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quikscribe_user -d quikscribe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quikscribe_network
+
+  # Redis for caching, sessions, and meeting coordination
+  redis:
+    image: redis:7-alpine
+    container_name: quikscribe_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quikscribe_network
+
+  # Main FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quikscribe_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://quikscribe_user:quikscribe_password@postgres:5432/quikscribe
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-here-change-in-production
+      - DEBUG=true
+      - ALLOWED_ORIGINS=["http://localhost:3000", "http://localhost:8080"]
+      - MAX_CONCURRENT_MEETINGS=10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./main.py:/app/main.py
+    networks:
+      - quikscribe_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Google Bot Service - Dynamic Port Allocation
+  google_bot_base:
+    build:
+      context: ./google_bot
+      dockerfile: Dockerfile
+    container_name: quikscribe_google_bot_base
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - quikscribe_network
+    volumes:
+      - ./google_bot:/app
+      - /app/node_modules
+    profiles:
+      - base
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+
+  # Meeting Coordinator Service
+  meeting_coordinator:
+    build:
+      context: ./google_bot
+      dockerfile: Dockerfile
+    container_name: quikscribe_meeting_coordinator
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - BACKEND_URL=http://backend:8000
+      - COORDINATOR_PORT=3001
+      - MAX_CONCURRENT_MEETINGS=10
+      - DYNAMIC_PORT_START=3002
+      - DYNAMIC_PORT_END=3012
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - quikscribe_network
+    volumes:
+      - ./google_bot:/app
+      - /app/node_modules
+    command: ["node", "coordinator.js"]
+
+  # Load Balancer for Google Bots
+  nginx:
+    image: nginx:alpine
+    container_name: quikscribe_nginx
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./google_bot:/app
+    depends_on:
+      - meeting_coordinator
+    networks:
+      - quikscribe_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  quikscribe_network:
+    driver: bridge

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quikscribe-worker-standalone
+  namespace: quikscribe
+  labels:
+    app: quikscribe-worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quikscribe-worker
+  template:
+    metadata:
+      labels:
+        app: quikscribe-worker
+    spec:
+      nodeSelector:
+        role: general
+      volumes:
+        - name: x11-socket
+          emptyDir: {}
+        - name: segments
+          emptyDir: {}
+      containers:
+        - name: worker
+          image: 266735817130.dkr.ecr.us-east-1.amazonaws.com/quikscribe-google-bot:latest
+          imagePullPolicy: IfNotPresent
+          command: ["bun", "run", "worker.ts"]
+          env:
+            - name: DISPLAY
+              value: ":99.0"
+            - name: REDIS_URL
+              value: "redis://quikscribe-redis-master.quikscribe.svc.cluster.local:6379"
+            - name: MEETING_QUEUE
+              value: "meeting:queue"
+            - name: RECORD_TYPE
+              value: "VIDEO"
+            - name: SELENIUM_URL
+              value: "http://localhost:4444/wd/hub"
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+            - name: segments
+              mountPath: /app/segments
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1500m"
+              memory: "2Gi"
+        - name: selenium
+          image: selenium/standalone-chrome:123.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SE_OPTS
+              value: "--session-timeout 300"
+            - name: DISPLAY
+              value: ":99.0"
+          ports:
+            - containerPort: 4444
+              name: selenium
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "3Gi"

@@ -1,0 +1,46 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: quikscribe-eks
+  region: us-east-1
+  version: "1.29"
+
+iam:
+  withOIDC: true
+
+availabilityZones: [us-east-1a, us-east-1b]
+
+managedNodeGroups:
+  - name: ng-general
+    instanceType: m5.large
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 6
+    labels: { role: general }
+    taints: []
+    privateNetworking: true
+    ssh:
+      allow: false
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/quikscribe-eks: owned
+
+  - name: ng-bots
+    instanceType: c6i.2xlarge
+    desiredCapacity: 0
+    minSize: 0
+    maxSize: 10
+    labels: { role: bots }
+    privateNetworking: true
+    ssh:
+      allow: false
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/quikscribe-eks: owned

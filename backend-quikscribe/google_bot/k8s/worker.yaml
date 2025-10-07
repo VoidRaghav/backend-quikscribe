@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quikscribe-worker
+  namespace: quikscribe
+  labels:
+    app: quikscribe-worker
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: quikscribe-worker
+  template:
+    metadata:
+      labels:
+        app: quikscribe-worker
+    spec:
+      nodeSelector:
+        role: bots
+      volumes:
+        - name: x11-socket
+          emptyDir: {}
+        - name: segments
+          emptyDir: {}
+      containers:
+        - name: worker
+          image: your-registry/quikscribe-google-bot:latest
+          imagePullPolicy: IfNotPresent
+          command: ["bun", "run", "worker.ts"]
+          env:
+            - name: DISPLAY
+              value: ":99.0"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: REDIS_URL
+            - name: REDIS_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: REDIS_ADDRESS
+            - name: MEETING_QUEUE
+              value: "meeting:queue"
+            - name: RECORD_TYPE
+              value: "VIDEO"
+            - name: SELENIUM_URL
+              value: "http://localhost:4444/wd/hub"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_REGION
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+            - name: segments
+              mountPath: /app/segments
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1500m"
+              memory: "2Gi"
+        - name: selenium
+          image: selenium/standalone-chrome:123.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SE_OPTS
+              value: "--session-timeout 300"
+            - name: DISPLAY
+              value: ":99.0"
+          ports:
+            - containerPort: 4444
+              name: selenium
+          volumeMounts:
+            - name: x11-socket
+              mountPath: /tmp/.X11-unix
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "3Gi"
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: quikscribe-worker-scaledobject
+  namespace: quikscribe
+spec:
+  scaleTargetRef:
+    name: quikscribe-worker
+  pollingInterval: 5
+  cooldownPeriod: 60
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  triggers:
+    - type: redis
+      metadata:
+        listName: meeting:queue
+        listLength: "1"
+        addressFromEnv: REDIS_ADDRESS

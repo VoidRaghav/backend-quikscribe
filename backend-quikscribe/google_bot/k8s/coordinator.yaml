@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quikscribe-coordinator
+  namespace: quikscribe
+  labels:
+    app: quikscribe-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quikscribe-coordinator
+  template:
+    metadata:
+      labels:
+        app: quikscribe-coordinator
+    spec:
+      containers:
+        - name: coordinator
+          image: your-registry/quikscribe-google-bot:latest
+          imagePullPolicy: IfNotPresent
+          command: ["bun", "run", "coordinator.js"]
+          env:
+            - name: COORDINATOR_PORT
+              value: "3001"
+            - name: COORDINATOR_MODE
+              value: "queue"
+            - name: MEETING_QUEUE
+              value: "meeting:queue"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: REDIS_URL
+            - name: DYNAMIC_PORT_START
+              value: "3002"
+            - name: DYNAMIC_PORT_END
+              value: "3032"
+          ports:
+            - containerPort: 3001
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quikscribe-coordinator
+  namespace: quikscribe
+  labels:
+    app: quikscribe-coordinator
+spec:
+  selector:
+    app: quikscribe-coordinator
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+  type: ClusterIP
