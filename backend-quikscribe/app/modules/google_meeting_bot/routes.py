@@ -345,33 +345,48 @@ def _build_job_spec(meeting_id: str, uuid_val: str, duration_min: int, record_ty
     ]
 
     bot_container = k8s_client.V1Container(
-        name="worker",
-        image=image,
-        image_pull_policy="IfNotPresent",
-        command=["bun", "run", "index.ts"],
-        env=bot_env,
-        volume_mounts=mounts_bot,
-        resources=k8s_client.V1ResourceRequirements(
-            requests={"cpu": "250m", "memory": "512Mi"},
-            limits={"cpu": "750m", "memory": "1.5Gi"},
-        ),
-    )
-
+    name="worker",
+    image=image,
+    image_pull_policy="IfNotPresent",
+    # Small delay to allow Selenium sidecar to become ready
+    command=["sh", "-lc", "sleep 12; exec bun run index.ts"],
+    env=bot_env,
+    volume_mounts=mounts_bot,
+    resources=k8s_client.V1ResourceRequirements(
+        requests={"cpu": "250m", "memory": "512Mi"},
+        limits={"cpu": "750m", "memory": "1.5Gi"},
+    ),
+)
     selenium_container = k8s_client.V1Container(
-        name="selenium",
-        image="selenium/standalone-chrome:123.0",
-        image_pull_policy="IfNotPresent",
-        env=[
-            k8s_client.V1EnvVar(name="SE_OPTS", value="--session-timeout 300"),
-            k8s_client.V1EnvVar(name="DISPLAY", value=":99.0"),
-        ],
-        ports=[k8s_client.V1ContainerPort(container_port=4444, name="selenium")],
-        volume_mounts=mounts_sel,
-        resources=k8s_client.V1ResourceRequirements(
-            requests={"cpu": "500m", "memory": "512Mi"},
-            limits={"cpu": "1500m", "memory": "2Gi"},
-        ),
-    )
+    name="selenium",
+    image="selenium/standalone-chrome:123.0",
+    image_pull_policy="IfNotPresent",
+    env=[
+        k8s_client.V1EnvVar(name="SE_OPTS", value="--session-timeout 300"),
+        k8s_client.V1EnvVar(name="DISPLAY", value=":99.0"),
+    ],
+    ports=[k8s_client.V1ContainerPort(container_port=4444, name="selenium")],
+    volume_mounts=mounts_sel,
+    # Probes to ensure Selenium is really up before the worker starts using it
+    startup_probe=k8s_client.V1Probe(
+        http_get=k8s_client.V1HTTPGetAction(path="/status", port=4444),
+        initial_delay_seconds=3,
+        period_seconds=5,
+        timeout_seconds=3,
+        failure_threshold=24,  # up to ~2 minutes
+    ),
+    readiness_probe=k8s_client.V1Probe(
+        http_get=k8s_client.V1HTTPGetAction(path="/status", port=4444),
+        initial_delay_seconds=5,
+        period_seconds=5,
+        timeout_seconds=3,
+        failure_threshold=6,
+    ),
+    resources=k8s_client.V1ResourceRequirements(
+        requests={"cpu": "500m", "memory": "512Mi"},
+        limits={"cpu": "1500m", "memory": "2Gi"},
+    ),
+)
 
     pod_spec = k8s_client.V1PodSpec(
         restart_policy="Never",
