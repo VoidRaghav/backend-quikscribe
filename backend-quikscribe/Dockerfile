@@ -23,8 +23,11 @@ RUN apt-get update \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# # Install Python dependencies
+# RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt || \
+    (sleep 10 && pip install --no-cache-dir -r requirements.txt) || \
+    (sleep 30 && pip install --no-cache-dir -r requirements.txt)
 
 # Copy project files
 COPY . .
