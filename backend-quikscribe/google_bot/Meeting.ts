@@ -211,7 +211,11 @@ export class Meeting {
         this.driver = driver;
         await driver.manage().window().maximize();
         await driver.executeScript("window.focus();");
-        const meetUrl = `https://meet.google.com/${this.meetingId}`;
+        
+        // Use meetingId as-is if it's already a full URL, otherwise add prefix
+        const meetUrl = this.meetingId.startsWith('http') 
+            ? this.meetingId 
+            : `https://meet.google.com/${this.meetingId}`;
         console.log("Opening Meet URL:", meetUrl);
         await driver.get(meetUrl);
         await driver.sleep(1000);
