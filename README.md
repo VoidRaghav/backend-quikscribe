@@ -328,8 +328,8 @@ For support and questions:
 
 ---
 
-**Built with ❤️ by the QuikScribe Team**
+**Built with ❤️ by the Skriber Team**
 
 =======
-# backend-quikscribe
+# backend-skriber
 >>>>>>> cf1130291e16b9275c7c9272523e6ca368639866
