@@ -5,7 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-QuikScribe is a powerful backend API for managing Google Meet recordings with automated bot integration. The application provides user authentication, meeting management, and real-time transcription capabilities through containerized bots.
+Skriber-AI is a powerful backend API for managing Google Meet recordings with automated bot integration. The application provides user authentication, meeting management, and real-time transcription capabilities through containerized bots.
 
 ## 🚀 Features
 
